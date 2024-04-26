@@ -1,29 +1,33 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jwt.exceptions import InvalidTokenError
-from db.models.medels import UserModel
-import auth.schems as schems
+from db.models.models import UserSchema
+import auth.schemas as schemas
 import auth.utils_jwt as auth_utils
 
 http_bearer = HTTPBearer()
 
-router = APIRouter(prefix="/jwt", tags=["JWT"])
+router = APIRouter(prefix="/jwt", tags=["Auth"])
 
-john = UserModel(
+john = UserSchema(   
     username="john",
     password=auth_utils.hash_password("qwerty"),
     email="john@exmple.com"
 )
 
-sam = UserModel(
+sam = UserSchema(
     username="sam",
     password=auth_utils.hash_password("secret"),
 )
 
-user_db: dict[str, UserModel] = {
+user_db: dict[str, UserSchema] = {
     john.username: john,
     sam.username: sam 
 }
+
+@router.post("/registration/", response_model=schemas.UserInfo)
+def registration_user(user: schemas.UserRegistration):
+    pass
 
 def validate_auth_user(
     username: str,
@@ -52,15 +56,15 @@ def validate_auth_user(
     
     
 
-@router.post("/login/", response_model=schems.TokenInfo)
-def auth_user_issue_jwt(user: UserModel = Depends(validate_auth_user)):
+@router.post("/login/", response_model=schemas.TokenInfo)
+def auth_user_issue_jwt(user: UserSchema = Depends(validate_auth_user)):
     jwt_payload = {
         "sub": user.username,
         "username": user.username,
         "email": user.email
     }
     accesss_token = auth_utils.encode_jwt(jwt_payload, )
-    return schems.TokenInfo(
+    return schemas.TokenInfo(
         access_token=accesss_token,
         token_type="Bearer"
     )
@@ -77,7 +81,7 @@ def get_current_token_payload(credentials: HTTPAuthorizationCredentials = Depend
     
     return payload
 
-def get_current_auth_user(payload: dict = Depends(get_current_token_payload)) -> UserModel:
+def get_current_auth_user(payload: dict = Depends(get_current_token_payload)) -> UserSchema:
     username: str = payload.get("sub")
     if user := user_db.get(username):
         return user
@@ -87,7 +91,7 @@ def get_current_auth_user(payload: dict = Depends(get_current_token_payload)) ->
         detail="Token invalid"
     )
 
-def get_current_active_auth_user(user: UserModel = Depends(get_current_auth_user)):
+def get_current_active_auth_user(user: UserSchema = Depends(get_current_auth_user)):
     if user.active:
         return user
     
@@ -97,7 +101,7 @@ def get_current_active_auth_user(user: UserModel = Depends(get_current_auth_user
     )
 
 @router.get("/me")
-def auth_user_check_self_info(user: UserModel = Depends(get_current_active_auth_user)):
+def auth_user_check_self_info(user: UserSchema = Depends(get_current_active_auth_user)):
     return {
         "username": user.username,
         "email": user.email
