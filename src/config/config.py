@@ -14,6 +14,8 @@ class DbSettings(BaseModel):
     POSTGRES_DB: str = os.environ.get("POSTGRES_DB")
     POSTGRES_HOST: str = os.environ.get("POSTGRES_HOST")
     POSTGRES_PORT: str = os.environ.get("POSTGRES_PORT")
+    DATABASE_URL: str = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
+    DATABASE_URL_ASYNC: str = f'postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
 
 class AuthJWT(BaseModel):
     private_key_path: Path = BASE_DIR / "certs" / "jwt-private.pem"
