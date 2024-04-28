@@ -2,127 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update
 from db.sesion import get_async_session
 from pydantic import EmailStr
 from typing import Annotated
 from auth.models.models import user as UserModel
 import auth.schemas.schemas as schemas
+import auth.utils.utils_db as db_utils
 import auth.utils.utils_jwt as auth_utils
 
 http_bearer = HTTPBearer()
 
-router = APIRouter(prefix="/jwt", tags=["Auth"])
-
-async def check_exists_user(
-    user: schemas.UserRegistration,
-    session: AsyncSession = Depends(get_async_session)
-) -> schemas.UserRegistration:
-    query = select(UserModel).where(UserModel.c.email == user.email)
-    result = await session.execute(query)
-    if result.all():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User already exists"
-        )
-    
-    return user 
-
-@router.post("/registration/", response_model=schemas.UserInfo)
-async def registration_user(
-    user: schemas.UserRegistration = Depends(check_exists_user),
-    session: AsyncSession = Depends(get_async_session)) -> schemas.UserInfo:
-    new_user: dict = {
-        "name": user.name,
-        "surname": user.surname,
-        "email": user.email,
-        "profile_type": user.profile_type,
-        "hash_password": auth_utils.hash_password(user.password)
-    }
-    stmt = insert(UserModel).values(new_user)
-    await session.execute(stmt)
-    await session.commit()
-
-    query = select(UserModel).where(UserModel.c.email == user.email)
-    result = await session.execute(query)
-    user_info: dict = result.mappings().all()[0]
-    return schemas.UserInfo(
-        index=user_info.get("id"),
-        name=user_info.get("name"),
-        surname=user_info.get("surname"),
-        email=user_info.get("email"),
-        profile_type=user_info.get("profile_type"),
-        is_active=user_info.get("is_active")
-    )
-
-async def validate_auth_user(
-    email: Annotated[EmailStr, Form()],
-    password: Annotated[str, Form()],
-    session: AsyncSession = Depends(get_async_session)
-):
-    unauthed_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="invalid username or password"
-    )
-    query = select(UserModel).where(UserModel.c.email == email)
-    check_user = await session.execute(query)
-    # print(check_user.mappings().all())
-
-    user_info: dict = check_user.mappings().all()[0]
-
-    if not user_info:
-        raise unauthed_exc
-
-    if not auth_utils.validate_password(
-        password=password,
-        hashed_password=user_info.get("hash_password")
-    ):
-        raise unauthed_exc
-    
-    if not user_info.get("is_active"):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="user inactive"
-        )
-
-    return schemas.UserInfo(
-        index=user_info.get("id"),
-        name=user_info.get("name"),
-        surname=user_info.get("surname"),
-        email=user_info.get("email"),
-        profile_type=user_info.get("profile_type"),
-        is_active=user_info.get("is_active")
-    )
-    
-    
-
-@router.post("/login/", response_model=schemas.TokenInfo)
-def auth_user_issue_jwt(user: schemas.UserInfo = Depends(validate_auth_user)) -> schemas.TokenInfo:
-    print(user)
-    # jwt_payload = {
-    #     "sub": user.index,
-    #     "name": user.name,
-    #     "email": user.email,
-    #     "profile_type": user.profile_type,
-    # }
-
-    jwt_payload = {
-        "sub": user.index,
-        "name": user.name,
-        "surname":user.surname,
-        "email": user.email,
-        "profile_type": user.profile_type,
-        "is_active": user.is_active
-    }
-
-    # accesss_token = "sdjgisdbgjsnd.dsnfsndsjdn.sdnsuidgbduvn"
-
-    accesss_token = auth_utils.encode_jwt(jwt_payload)
-
-    return schemas.TokenInfo(
-        access_token=accesss_token,
-        token_type="Bearer"
-    )
+router = APIRouter(prefix="/user", tags=["Auth"])
 
 def get_current_token_payload(credentials: HTTPAuthorizationCredentials = Depends(http_bearer)) :
     token = credentials.credentials
@@ -140,19 +31,16 @@ async def get_current_auth_user(
     payload: dict = Depends(get_current_token_payload),
     session: AsyncSession = Depends(get_async_session)) -> schemas.UserInfo:
 
-    query = select(UserModel).where(UserModel.c.email == payload.get("email"))
-    check_user = await session.execute(query)
+    user_db = await db_utils.get_cuurent_user_by_email(session, payload.get("email"))
 
-    user_info: dict = check_user.mappings().all()[0]
-
-    if user_info:
+    if user_db:
         return schemas.UserInfo(
-            index=user_info.get("id"),
-            name=user_info.get("name"),
-            surname=user_info.get("surname"),
-            email=user_info.get("email"),
-            profile_type=user_info.get("profile_type"),
-            is_active=user_info.get("is_active")
+            index=user_db.get("id"),
+            name=user_db.get("name"),
+            surname=user_db.get("surname"),
+            email=user_db.get("email"),
+            profile_type=user_db.get("profile_type"),
+            is_active=user_db.get("is_active")
         )
     
     raise HTTPException(
@@ -172,3 +60,52 @@ def get_current_active_auth_user(user: schemas.UserInfo = Depends(get_current_au
 @router.get("/me")
 def auth_user_check_self_info(user: schemas.UserInfo = Depends(get_current_active_auth_user)):
     return user
+
+@router.post("/me")
+async def change_user_password(
+    old_password: str,
+    new_password: str,
+    session: AsyncSession = Depends(get_async_session),
+    payload: dict = Depends(get_current_token_payload)) -> schemas.UserInfo:
+    
+    user_db = await db_utils.get_cuurent_user_by_email(session, payload.get("email"))
+
+    print(user_db)
+
+    if not auth_utils.validate_password(
+        password=old_password,
+        hashed_password=user_db.get("hash_password")
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password change error"
+        )
+    
+    new_hash_password = auth_utils.hash_password(new_password)
+
+    stmt = update(UserModel).where(UserModel.c.email == user_db.get("email")).values(hash_password=new_hash_password)
+    await session.execute(stmt)
+    await session.commit()
+
+    return schemas.UserInfo(
+        index=user_db.get("id"),
+        name=user_db.get("name"),
+        surname=user_db.get("surname"),
+        email=user_db.get("email"),
+        profile_type=user_db.get("profile_type"),
+        is_active=user_db.get("is_active")
+    )
+
+@router.put("/me")
+def change_information_about_user(
+    new_info_about_user: schemas.UserInfo, 
+    session: AsyncSession = Depends(get_async_session),
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer)) -> schemas.UserInfo:
+    pass
+
+@router.delete("/me")
+def delete_user_account(
+    user: schemas.UserInfo,
+    session: AsyncSession = Depends(get_async_session),
+    credentials: HTTPAuthorizationCredentials = Depends(http_bearer)):
+    pass   

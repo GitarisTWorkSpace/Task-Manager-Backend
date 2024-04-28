@@ -1,4 +1,4 @@
-import jwt
+import jwt 
 import bcrypt
 from datetime import timedelta, datetime
 from config.config import settings
@@ -10,7 +10,7 @@ def encode_jwt(
     expire_timedelta: timedelta | None = None,
     expire_minutes: int = settings.auth_jwt.access_token_expire_minutes
 ):
-    to_encode = payload.copy()
+    to_encode: dict = payload.copy()
     now = datetime.utcnow()
     if expire_timedelta:
         expire = now + expire_timedelta
@@ -20,7 +20,7 @@ def encode_jwt(
         iat=now,
         exp=expire
     )
-    encoded = jwt.encode(to_encode, private_key, algorithm=algorithm);
+    encoded = jwt.encode(payload=to_encode, key=private_key, algorithm=algorithm);
     return encoded
 
 def decoded_jwt(

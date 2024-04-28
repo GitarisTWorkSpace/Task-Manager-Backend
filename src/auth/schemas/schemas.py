@@ -19,3 +19,4 @@ class UserRegistration(BaseModel):
     email: EmailStr
     profile_type: ProfileType = ProfileType.student
     password: str
+
