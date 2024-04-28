@@ -1,4 +1,4 @@
-from sqlalchemy import MetaData, Table, Column, Integer, String, Enum, BINARY
+from sqlalchemy import MetaData, Table, Column, Integer, String, Enum, LargeBinary, Boolean
 import enum 
 
 metadata = MetaData()
@@ -14,6 +14,7 @@ user = Table(
     Column("name", String(50), nullable=False),
     Column("surname", String(50), nullable=False),
     Column("email", String(60), nullable=False),
-    Column("hash_password", String, nullable=False),
-    Column("profile_type", Enum(ProfileType), default=ProfileType.student, nullable=False)
+    Column("hash_password", LargeBinary, nullable=False),
+    Column("profile_type", Enum(ProfileType), default=ProfileType.student, nullable=False),
+    Column("is_active", Boolean, nullable=False, default=True)
 )

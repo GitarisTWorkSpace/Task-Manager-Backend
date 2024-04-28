@@ -11,6 +11,7 @@ class UserInfo(BaseModel):
     surname: str
     email: EmailStr
     profile_type: ProfileType = ProfileType.student
+    is_active: bool
 
 class UserRegistration(BaseModel):
     name: str
