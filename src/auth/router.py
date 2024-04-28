@@ -2,11 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, insert, update
+from sqlalchemy import select, insert, update, delete
 from db.sesion import get_async_session
 from pydantic import EmailStr
 from typing import Annotated
 from auth.models.models import user as UserModel
+from auth.models.models import ProfileType
 import auth.schemas.schemas as schemas
 import auth.utils.utils_db as db_utils
 import auth.utils.utils_jwt as auth_utils
@@ -31,7 +32,7 @@ async def get_current_auth_user(
     payload: dict = Depends(get_current_token_payload),
     session: AsyncSession = Depends(get_async_session)) -> schemas.UserInfo:
 
-    user_db = await db_utils.get_cuurent_user_by_email(session, payload.get("email"))
+    user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
 
     if user_db:
         return schemas.UserInfo(
@@ -68,7 +69,7 @@ async def change_user_password(
     session: AsyncSession = Depends(get_async_session),
     payload: dict = Depends(get_current_token_payload)) -> schemas.UserInfo:
     
-    user_db = await db_utils.get_cuurent_user_by_email(session, payload.get("email"))
+    user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
 
     print(user_db)
 
@@ -83,7 +84,7 @@ async def change_user_password(
     
     new_hash_password = auth_utils.hash_password(new_password)
 
-    stmt = update(UserModel).where(UserModel.c.email == user_db.get("email")).values(hash_password=new_hash_password)
+    stmt = update(UserModel).where(UserModel.c.id == user_db.get("id")).values(hash_password=new_hash_password)
     await session.execute(stmt)
     await session.commit()
 
@@ -97,15 +98,55 @@ async def change_user_password(
     )
 
 @router.put("/me")
-def change_information_about_user(
+async def change_information_about_user(
     new_info_about_user: schemas.UserInfo, 
     session: AsyncSession = Depends(get_async_session),
-    credentials: HTTPAuthorizationCredentials = Depends(http_bearer)) -> schemas.UserInfo:
-    pass
+    payload: dict = Depends(get_current_token_payload)) -> schemas.UserInfo:
+    
+    user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
+
+    print(user_db)
+
+    if new_info_about_user.name != user_db.get("name"):
+        stmt = update(UserModel).where(UserModel.c.id == user_db.get("id")).values(name=new_info_about_user.name)
+        await session.execute(stmt)
+        await session.commit()
+    
+    if new_info_about_user.surname != user_db.get("surname"):
+        stmt = update(UserModel).where(UserModel.c.id == user_db.get("id")).values(surname=new_info_about_user.surname)
+        await session.execute(stmt)
+        await session.commit()
+    
+    if new_info_about_user.email != user_db.get("email"):
+        stmt = update(UserModel).where(UserModel.c.id == user_db.get("id")).values(email=new_info_about_user.email)
+        await session.execute(stmt)
+        await session.commit()  
+
+    new_user_info = await db_utils.get_current_user_by_index(session, user_db.get("id"))
+
+    return schemas.UserInfo(
+        index=new_user_info.get("id"),
+        name=new_user_info.get("name"),
+        surname=new_user_info.get("surname"),
+        email=new_user_info.get("email"),
+        profile_type=new_user_info.get("profile_type"),
+        is_active=new_user_info.get("is_active")
+    )
 
 @router.delete("/me")
-def delete_user_account(
-    user: schemas.UserInfo,
+async def delete_user_account(
     session: AsyncSession = Depends(get_async_session),
-    credentials: HTTPAuthorizationCredentials = Depends(http_bearer)):
-    pass   
+    payload: dict = Depends(get_current_token_payload)):
+    
+    user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
+
+    print(user_db)
+
+    stmt = delete(UserModel).where(UserModel.c.id == user_db.get("id"))
+    await session.execute(stmt)
+    await session.commit()  
+
+    return HTTPException(
+        status_code=status.HTTP_200_OK,
+        detail="User deleted"
+    )

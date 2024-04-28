@@ -13,9 +13,9 @@ router = APIRouter(prefix="/jwt", tags=["Auth"])
 
 async def check_exists_user(
     user: schemas.UserRegistration,
-    session: AsyncSession = Depends(get_async_session)
-) -> schemas.UserRegistration:
-    user_db = await db_utils.get_cuurent_user_by_email(session, user.email)
+    session: AsyncSession = Depends(get_async_session)) -> schemas.UserRegistration:
+    
+    user_db = await db_utils.get_current_user_by_email(session, user.email)
     if user_db:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -28,6 +28,7 @@ async def check_exists_user(
 async def registration_user(
     user: schemas.UserRegistration = Depends(check_exists_user),
     session: AsyncSession = Depends(get_async_session)) -> schemas.UserInfo:
+
     new_user: dict = {
         "name": user.name,
         "surname": user.surname,
@@ -35,11 +36,13 @@ async def registration_user(
         "profile_type": user.profile_type,
         "hash_password": auth_utils.hash_password(user.password)
     }
+
     stmt = insert(UserModel).values(new_user)
     await session.execute(stmt)
     await session.commit()
 
-    user_db = await db_utils.get_cuurent_user_by_email(session, user.email)
+    user_db = await db_utils.get_current_user_by_email(session, user.email)
+
     return schemas.UserInfo(
         index=user_db.get("id"),
         name=user_db.get("name"),
@@ -54,14 +57,14 @@ async def validate_auth_user(
     # password: Annotated[str, Form()],
     email: EmailStr,
     password: str,
-    session: AsyncSession = Depends(get_async_session)
-):
+    session: AsyncSession = Depends(get_async_session)):
+
     unauthed_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="invalid username or password"
     )
 
-    user_db = await db_utils.get_cuurent_user_by_email(session, email)
+    user_db = await db_utils.get_current_user_by_email(session, email)
 
     if not user_db:
         raise unauthed_exc
@@ -91,6 +94,7 @@ async def validate_auth_user(
 
 @router.post("/login/", response_model=schemas.TokenInfo)
 def auth_user_issue_jwt(user: schemas.UserInfo = Depends(validate_auth_user)) -> schemas.TokenInfo:
+    
     jwt_payload: dict = {
         "sub": user.index,
         "name": user.name,
