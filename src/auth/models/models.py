@@ -13,7 +13,7 @@ user = Table(
     Column("id", Integer, unique=True, primary_key=True),
     Column("name", String(50), nullable=False),
     Column("surname", String(50), nullable=False),
-    Column("email", String(60), nullable=False),
+    Column("email", String(60), unique=True, nullable=False),
     Column("hash_password", LargeBinary, nullable=False),
     Column("profile_type", Enum(ProfileType), default=ProfileType.student, nullable=False),
     Column("is_active", Boolean, nullable=False, default=True)
