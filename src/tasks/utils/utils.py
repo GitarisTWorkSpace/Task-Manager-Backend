@@ -3,6 +3,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from jwt import InvalidTokenError
 import auth.utils.utils_jwt as auth_utils
+import auth.utils.utils_db as db_utils
+from auth.models.models import ProfileType
 
 http_bearer = HTTPBearer()
 

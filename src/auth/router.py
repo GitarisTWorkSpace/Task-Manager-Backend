@@ -59,7 +59,7 @@ def get_current_active_auth_user(user: schemas.UserInfo = Depends(get_current_au
     )
 
 @router.get("/me")
-def auth_user_check_self_info(user: schemas.UserInfo = Depends(get_current_active_auth_user)):
+def auth_user_check_self_info(user: schemas.UserInfo = Depends(get_current_active_auth_user)) -> schemas.UserInfo:
     return user
 
 @router.post("/me")

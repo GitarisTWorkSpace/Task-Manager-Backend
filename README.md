@@ -74,7 +74,7 @@ cd ..
 
 # Python venv should be active
 # Create migration file
-alembic revision --autogenerate -m 'Migration name'
+alembic revision --autogenerate -m "Migration name"
 
 # Apply migrations
 alembic upgrade head
