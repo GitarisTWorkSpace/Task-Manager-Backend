@@ -340,7 +340,176 @@ async def change_information_about_project(
     new_project_info: task_schemas.AddProject,
     payload: dict = Depends(tsk_utils.get_current_token_payload),
     session: AsyncSession = Depends(get_async_session)) -> task_schemas.ProjectInfo:
-    pass
+
+    if payload.get("profile_type") != ProfileType.mentor.name:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough privileges"
+        )
+    
+    query = select(Project).where(Project.c.id == project_id)
+    result = await session.execute(query)
+    result_list = result.mappings().all()
+    if len(result_list) == 0: 
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    else: 
+        this_project = result_list[0]
+
+    query = select(Status).where(Status.c.project == project_id)
+    result = await session.execute(query)
+    columens = result.mappings().all()
+
+    if this_project.get("title") != new_project_info.title:
+        stmt = update(Project).where(Project.c.id == project_id).values(title=new_project_info.title)
+        await session.execute(stmt)
+        await session.commit()
+    
+    if this_project.get("description") != new_project_info.description:
+        stmt = update(Project).where(Project.c.id == project_id).values(description=new_project_info.description)
+        await session.execute(stmt)
+        await session.commit()
+
+    if len(columens) != len(new_project_info.columens):
+        stmt = delete(Status).where(Status.c.project == project_id)
+        await session.execute(stmt)
+        await session.commit()
+        for i in range(len(new_project_info.columens)):
+            new_status: dict = {
+                "project": this_project.get("id"),
+                "status_name": new_project_info.columens[i].status_name
+            }
+            stmt = insert(Status).values(new_status)
+            await session.execute(stmt)
+    else:
+        for i in range(len(new_project_info.columens)):
+            if columens[i].get("status_name") != new_project_info.columens[i].status_name:
+                stmt = update(Status).where(Status.c.status_name == columens[i].get("status_name"), Status.c.project == project_id).values(status_name=new_project_info.columens[i].status_name)
+                await session.execute(stmt)
+                await session.commit()
+
+    query = select(User_Project).where(User_Project.c.project == project_id)
+    result = await session.execute(query)
+    users_list = result.mappings().all()
+
+    mentor_list: List[UserInfo] = []
+    student_list: List[UserInfo] = []
+
+    for i in range(len(users_list)):
+        user = await db_utils.get_current_user_by_index(session, users_list[i].get("user"))
+        if user.get("profile_type") == ProfileType.mentor:
+            mentor_list.append(
+                UserInfo(
+                index=user.get("id"),
+                name=user.get("name"),
+                surname=user.get("surname"),
+                email=user.get("email"),
+                profile_type=user.get("profile_type"),
+                is_active=user.get("is_active"))
+            )
+        elif user.get("profile_type") == ProfileType.student:
+            student_list.append(
+                UserInfo(
+                index=user.get("id"),
+                name=user.get("name"),
+                surname=user.get("surname"),
+                email=user.get("email"),
+                profile_type=user.get("profile_type"),
+                is_active=user.get("is_active"))
+            )
+
+    if len(mentor_list) != len(new_project_info.mentors):
+        stmt = delete(User_Project).where(User_Project.c.project == project_id)
+        await session.execute(stmt)
+        await session.commit()
+        for i in range(len(new_project_info.mentors)):
+            user_in_project: dict = {
+                "user": new_project_info.mentors[i].index,
+                "project": this_project.get("id")
+            }
+            stmt = insert(User_Project).values(user_in_project)
+            await session.execute(stmt)
+    else:
+        for i in range(len(new_project_info.mentors)):
+            if mentor_list[i].index != new_project_info.mentors[i].index:
+                stmt = update(User_Project).where(User_Project.c.project == project_id, User_Project.c.user == mentor_list[i].index).values(user=new_project_info.mentors[i].index)
+                await session.execute(stmt)
+                await session.commit()
+
+    if len(student_list) != len(new_project_info.students):
+        stmt = delete(User_Project).where(User_Project.c.project == project_id)
+        await session.execute(stmt)
+        await session.commit()
+        for i in range(len(new_project_info.students)):
+            user_in_project: dict = {
+                "user": new_project_info.students[i].index,
+                "project": this_project.get("id")
+            }
+            stmt = insert(User_Project).values(user_in_project)
+            await session.execute(stmt)
+    else:
+        for i in range(len(new_project_info.students)):
+            if student_list[i].index != new_project_info.students[i].index:
+                stmt = update(User_Project).where(User_Project.c.project == project_id, User_Project.c.user == student_list[i].index).values(user=new_project_info.students[i].index)
+                await session.execute(stmt)
+                await session.commit()
+
+    query = select(Status).where(Status.c.project == this_project.get("id"))
+    result = await session.execute(query)
+    result_list = result.mappings().all()
+    statuses_in_this_project: List[task_schemas.StatusInfo] = []
+    for i in range(len(result_list)):
+        statuses_in_this_project.append(
+            task_schemas.StatusInfo(
+                project_id=this_project.get("id"),
+                status_name=result_list[i].get("status_name")
+            )
+        )
+
+    query = select(User_Project).where(User_Project.c.project == this_project.get("id"))
+    result = await session.execute(query)
+    result_list = result.mappings().all()
+    print(result_list)
+    mentors_list: List[UserInfo] = []
+    student_list: List[UserInfo] = []
+
+    for i in range(len(result_list)):
+        user = await db_utils.get_current_user_by_index(session, result_list[i].get("user"))
+        print(user)
+        if user.get("profile_type") == ProfileType.mentor:
+            mentors_list.append(
+                UserInfo(
+                    index=user.get("id"),
+                    name=user.get("name"),
+                    surname=user.get("surname"),
+                    email=user.get("email"),
+                    profile_type=user.get("profile_type"),
+                    is_active=user.get("is_active")
+                )
+            )
+        elif user.get("profile_type") == ProfileType.student:
+            student_list.append(
+                UserInfo(
+                    index=user.get("id"),
+                    name=user.get("name"),
+                    surname=user.get("surname"),
+                    email=user.get("email"),
+                    profile_type=user.get("profile_type"),
+                    is_active=user.get("is_active")
+                )
+            )
+    
+    return task_schemas.ProjectInfo(
+        index=this_project.get("id"),
+        title=this_project.get("title"),
+        description=this_project.get("description"),
+        create_at=this_project.get("create_at"),
+        columens=statuses_in_this_project,
+        mentors=mentors_list,
+        students=student_list
+    )
 
 @router.delete("/{project_id}")
 async def delete_project(
