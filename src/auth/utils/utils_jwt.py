@@ -1,7 +1,12 @@
 import jwt 
 import bcrypt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jwt.exceptions import InvalidTokenError
 from datetime import timedelta, datetime
 from config.config import settings
+
+http_bearer = HTTPBearer()
 
 def encode_jwt(
     payload: dict,
@@ -38,3 +43,15 @@ def hash_password(password: str) -> bytes:
 
 def validate_password(password: str, hashed_password: bytes) -> bool:
     return bcrypt.checkpw(password=password.encode(), hashed_password=hashed_password)
+
+def get_current_token_payload(credentials: HTTPAuthorizationCredentials = Depends(http_bearer)) :
+    token = credentials.credentials
+    try:
+        payload = decoded_jwt(token=token)
+    except InvalidTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token error"
+        )
+    
+    return payload

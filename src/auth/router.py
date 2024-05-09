@@ -16,20 +16,8 @@ http_bearer = HTTPBearer()
 
 router = APIRouter(prefix="/user", tags=["Auth"])
 
-def get_current_token_payload(credentials: HTTPAuthorizationCredentials = Depends(http_bearer)) :
-    token = credentials.credentials
-    try:
-        payload = auth_utils.decoded_jwt(token=token)
-    except InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token error"
-        )
-    
-    return payload
-
 async def get_current_auth_user(
-    payload: dict = Depends(get_current_token_payload),
+    payload: dict = Depends(auth_utils.get_current_token_payload),
     session: AsyncSession = Depends(get_async_session)) -> schemas.UserInfo:
 
     user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
@@ -67,7 +55,7 @@ async def change_user_password(
     old_password: str,
     new_password: str,
     session: AsyncSession = Depends(get_async_session),
-    payload: dict = Depends(get_current_token_payload)) -> schemas.UserInfo:
+    payload: dict = Depends(auth_utils.get_current_token_payload)) -> schemas.UserInfo:
     
     user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
 
@@ -101,7 +89,7 @@ async def change_user_password(
 async def change_information_about_user(
     new_info_about_user: schemas.UserInfo, 
     session: AsyncSession = Depends(get_async_session),
-    payload: dict = Depends(get_current_token_payload)) -> schemas.UserInfo:
+    payload: dict = Depends(auth_utils.get_current_token_payload)) -> schemas.UserInfo:
     
     user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
 
@@ -136,7 +124,7 @@ async def change_information_about_user(
 @router.delete("/me")
 async def delete_user_account(
     session: AsyncSession = Depends(get_async_session),
-    payload: dict = Depends(get_current_token_payload)):
+    payload: dict = Depends(auth_utils.get_current_token_payload)):
     
     user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
 
