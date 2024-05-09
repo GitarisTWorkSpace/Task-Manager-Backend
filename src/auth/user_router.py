@@ -50,6 +50,23 @@ def get_current_active_auth_user(user: schemas.UserInfo = Depends(get_current_au
 def auth_user_check_self_info(user: schemas.UserInfo = Depends(get_current_active_auth_user)) -> schemas.UserInfo:
     return user
 
+@router.get("/{user_id}")
+async def get_information_about_user(
+    user_id: int,
+    session: AsyncSession = Depends(get_async_session)
+    ) -> schemas.UserInfo: 
+
+    user = await db_utils.get_current_user_by_index(session, user_id)
+
+    return schemas.UserInfo(
+        index=user.get("id"),
+        name=user.get("name"),
+        surname=user.get("surname"),
+        email=user.get("email"),
+        profile_type=user.get("profile_type"),
+        is_active=user.get("is_active")
+    )
+
 @router.post("/me")
 async def change_user_password(
     old_password: str,

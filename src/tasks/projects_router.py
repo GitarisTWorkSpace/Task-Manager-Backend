@@ -6,7 +6,6 @@ from db.sesion import get_async_session
 from auth.models.models import ProfileType
 from tasks.models.models import project as Project, status as Status, user_in_project as User_Project
 from auth.schemas.schemas import UserInfo
-import auth.utils.utils_db as db_utils
 import tasks.utils.utils as task_utils 
 import auth.utils.utils_jwt as auth_utils
 import tasks.schemas.schemas as task_schemas
