@@ -3,14 +3,19 @@ from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from auth.schemas.schemas import UserInfo
 
+class AddStatus(BaseModel):
+    project_id: int
+    status_name: str   
+
 class StatusInfo(BaseModel):
+    index: int
     project_id: int
     status_name: str
 
 class AddProject(BaseModel):
     title: str
     description: str
-    columens: List[StatusInfo]
+    columens: List[AddStatus]
     mentors: List[UserInfo]
     students: List[UserInfo]
 
@@ -23,19 +28,15 @@ class ProjectInfo(BaseModel):
     mentors: List[UserInfo]
     students: List[UserInfo]
 
-class AllStatusInProjectInfo(BaseModel):
-    project_index: int
-    project_title: str
-    status_name: List[str]
-
 class AddTask(BaseModel):
-    project_id: int
     title: str
     description: str
     date_start: datetime 
     date_finish: datetime 
-    status: str
-    student_email: EmailStr 
+    status: StatusInfo
+    assessment: int
+    student: UserInfo # EmailStr
+    mentor: UserInfo
 
 class TaskInfo(BaseModel):
     index: int

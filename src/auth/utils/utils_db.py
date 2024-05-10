@@ -25,3 +25,18 @@ async def get_current_user_by_index(
         return result[0]
     else :
         return None
+    
+async def get_user_by_id(
+    session: AsyncSession,
+    user_id: int
+    ) -> UserInfo:
+    user = await get_current_user_by_index(session, user_id)
+
+    return UserInfo(
+        index=user.get("id"),
+        name=user.get("name"),
+        surname=user.get("surname"),
+        email=user.get("email"),
+        profile_type=user.get("profile_type"),
+        is_active=user.get("is_active")
+    )

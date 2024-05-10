@@ -52,13 +52,7 @@ async def get_information_about_project(
             detail="Project not found"
         )
 
-    query = select(User_Project).where(
-        User_Project.c.user == payload.get("sub"), 
-        User_Project.c.project == project_id)
-    result = await session.execute(query)
-    result_list = result.mappings().all()
-    print(result_list)
-    if len(result_list) == 0:
+    if not await task_utils.check_user_in_project(session, payload.get("sub"), project_id):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User is not a member of this project"
@@ -189,6 +183,12 @@ async def change_information_about_project(
             detail="Project not found"
         )
 
+    if not await task_utils.check_user_in_project(session, payload.get("sub"), project_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not a member of this project"
+        )
+
     if this_project.get("title") != new_project_info.title:
         stmt = update(Project).where(Project.c.id == project_id).values(title=new_project_info.title)
         await session.execute(stmt)
@@ -215,8 +215,10 @@ async def change_information_about_project(
     else:
         for i in range(len(new_project_info.columens)):
             if columens[i].status_name != new_project_info.columens[i].status_name:
-                stmt = update(Status).where(Status.c.status_name == columens[i].status_name, 
-                                            Status.c.project == project_id).values(status_name=new_project_info.columens[i].status_name)
+                stmt = update(Status).where(
+                    Status.c.status_name == columens[i].status_name, 
+                    Status.c.project == project_id).values(
+                        status_name=new_project_info.columens[i].status_name)
                 await session.execute(stmt)
                 await session.commit()
 
@@ -268,6 +270,12 @@ async def delete_project(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found"
+        )
+    
+    if not await task_utils.check_user_in_project(session, payload.get("sub"), project_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not a member of this project"
         )
     
     stmt = delete(Project).where(Project.c.id == project_id)
