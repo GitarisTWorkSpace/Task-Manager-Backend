@@ -1,22 +1,26 @@
-from pydantic import BaseModel, EmailStr
-from auth.models.models import ProfileType
+from pydantic import BaseModel, EmailStr, FileUrl
 
-class TokenInfo(BaseModel):
-    access_token: str
-    token_type: str
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
 
 class UserInfo(BaseModel):
-    index: int 
+    index: int
     name: str
     surname: str
     email: EmailStr
-    profile_type: ProfileType = ProfileType.student
+    avatarUrl: str | None = None #FileUrl
+    role: str
     is_active: bool
 
 class UserRegistration(BaseModel):
     name: str
     surname: str
     email: EmailStr
-    profile_type: ProfileType = ProfileType.student
+    role: str
     password: str
 
+class TokensInfo(BaseModel):
+    access_token: str
+    refresh_token: str | None = None
+    token_type: str = "Bearer"

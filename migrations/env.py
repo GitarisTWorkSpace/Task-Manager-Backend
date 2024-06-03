@@ -5,9 +5,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.config.config import settings
-from src.auth.models.models import metadata as user_metadata
-from src.tasks.models.models import metadata as task_metadata
+from config.config import settings
+from db.models.user_model import metadata as user_metadata
+from db.models.task_model import metadata as task_metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

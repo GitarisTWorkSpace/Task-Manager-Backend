@@ -108,7 +108,7 @@ async def change_information_about_user(
     session: AsyncSession = Depends(get_async_session),
     payload: dict = Depends(auth_utils.get_current_token_payload)) -> schemas.UserInfo:
     
-    user_db = await db_utils.get_current_user_by_email(session, payload.get("email"))
+    user_db: dict = await db_utils.get_current_user_by_email(session, payload.get("email"))
 
     print(user_db)
 

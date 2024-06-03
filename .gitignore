@@ -1,6 +1,5 @@
 venv/
 __pycache__/
-certs/
 .env
-
+api/auth/certs/*
 migrations/versions/*
