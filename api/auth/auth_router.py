@@ -48,6 +48,11 @@ async def auth_refresh_jwt(
         )
 
     user_in_db = await utils_user.get_current_user_by_index(session, payload.get("sub"))
+    if user_in_db == None: 
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found"
+        )
     user_in_db = utils_user.user_in_db_transform_in_user_info(user_in_db)
 
     access_token = utils_login.create_access_token(user_in_db)

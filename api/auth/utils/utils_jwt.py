@@ -59,3 +59,15 @@ def get_current_token_payload(credentials: HTTPAuthorizationCredentials = Depend
         )
     
     return payload
+
+def validate_token_type_is_access(
+    payload: dict = Depends(get_current_token_payload)
+) -> dict:
+    token_type = payload.get(settings.token_info.TOKEN_TYPE_FIELD)
+    if token_type == settings.token_info.ACCESS_TOKEN_TYPE:
+        return payload
+    
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Invatid token type {token_type!r} expected {settings.token_info.ACCESS_TOKEN_TYPE!r}"
+    )

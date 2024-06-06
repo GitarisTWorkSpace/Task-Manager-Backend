@@ -13,7 +13,7 @@ task_router = APIRouter(prefix="/task", tags=["Task"])
 
 @task_router.get("/all", response_model=List[TaskInfo])
 async def get_all_access_tasks(
-    payload: dict = Depends(utils_jwt.get_current_token_payload),
+    payload: dict = Depends(utils_jwt.validate_token_type_is_access),
     session: AsyncSession = Depends(get_async_session)
 ):
     user_in_db: dict = await utils_user.get_current_user_by_index(session, payload.get("sub"))
@@ -24,7 +24,7 @@ async def get_all_access_tasks(
 @task_router.get("/{index}", response_model=TaskInfo)
 async def get_task_info(
     index: int,
-    payload: dict = Depends(utils_jwt.get_current_token_payload),
+    payload: dict = Depends(utils_jwt.validate_token_type_is_access),
     session: AsyncSession = Depends(get_async_session)
 ):
     user_in_db: dict = await utils_user.get_current_user_by_index(session, payload.get("sub"))
@@ -43,7 +43,7 @@ async def get_task_info(
 @task_router.post("/add")
 async def add_task(
     new_task: AddTask,
-    payload: dict = Depends(utils_jwt.get_current_token_payload),
+    payload: dict = Depends(utils_jwt.validate_token_type_is_access),
     session: AsyncSession = Depends(get_async_session)
 ):
     user_in_db: dict = await utils_user.get_current_user_by_index(session, payload.get("sub"))
@@ -85,7 +85,7 @@ async def add_task(
 async def change_task(
     index: int,
     new_task_info: AddTask,
-    payload: dict = Depends(utils_jwt.get_current_token_payload),
+    payload: dict = Depends(utils_jwt.validate_token_type_is_access),
     session: AsyncSession = Depends(get_async_session)
 ):
     user_in_db: dict = await utils_user.get_current_user_by_index(session, payload.get("sub"))
@@ -104,7 +104,7 @@ async def change_task(
 @task_router.delete("/{index}}")
 async def delete_task(
     index: int,
-    payload: dict = Depends(utils_jwt.get_current_token_payload),
+    payload: dict = Depends(utils_jwt.validate_token_type_is_access),
     session: AsyncSession = Depends(get_async_session)
 ):
     user_in_db: dict = await utils_user.get_current_user_by_index(session, payload.get("sub"))
