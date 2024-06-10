@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from api.auth.auth_router import auth_router
 from api.user.user_router import user_router
@@ -27,3 +28,8 @@ app.include_router(router=task_router, prefix="/api")
 def get_hello():
     return "Hello world!"
 
+
+@app.get('/api/json_tea')
+async def tea2(request: Request):
+    rnd_pic = 'logo512.png'
+    return FileResponse(rnd_pic)

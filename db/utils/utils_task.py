@@ -46,6 +46,35 @@ async def get_all_tasks_for_student(
     
     return result_list
 
+async def get_all_tasks_for_mentor(
+    mentor: UserInfo,
+    session: AsyncSession
+) -> List[TaskInfo]:
+    
+    stmt = select(TaskModel).where(TaskModel.c.mentor == mentor.index)
+    task_list_in_db = await session.execute(stmt)
+    task_list = task_list_in_db.mappings().all()
+
+    result_list: List[TaskInfo] = []
+
+    for task in task_list:
+        result_list.append(
+            TaskInfo(
+                index=task.get("id"),
+                title=task.get("title"),
+                description=task.get("description"),
+                create_at=task.get("create_at"),
+                start_task=task.get("start_task"),
+                finish_task=task.get("finish_task"),
+                score=task.get("score"),
+                status=task.get("status"),
+                student=task.get("student"),
+                mentor=task.get("mentor")
+            )
+        )
+    
+    return result_list
+
 async def get_task_by_index(
     index: int,
     session: AsyncSession,
@@ -126,3 +155,32 @@ async def change_task_info(
     await session.commit()
 
     return await get_task_by_index(index, session)
+
+
+async def get_all_tasks(
+    session: AsyncSession
+) -> List[TaskInfo]:
+    
+    stmt = select(TaskModel).where(TaskModel.c.id > 0)
+    tasks_db = await session.execute(stmt)
+    task_list = tasks_db.mappings().all()
+
+    result_list: List[TaskInfo] = []
+
+    for task in task_list:
+        result_list.append(
+            TaskInfo(
+                index=task.get("id"),
+                title=task.get("title"),
+                description=task.get("description"),
+                create_at=task.get("create_at"),
+                start_task=task.get("start_task"),
+                finish_task=task.get("finish_task"),
+                score=task.get("score"),
+                status=task.get("status"),
+                student=task.get("student"),
+                mentor=task.get("mentor")
+            )
+        )
+
+    return result_list

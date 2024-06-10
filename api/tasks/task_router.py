@@ -19,6 +19,12 @@ async def get_all_access_tasks(
     user_in_db: dict = await utils_user.get_current_user_by_index(session, payload.get("sub"))
     user: UserInfo = utils_user.user_in_db_transform_in_user_info(user_in_db)
 
+    if user.role == Role.admin:
+        return await utils_task.get_all_tasks(session)
+
+    if user.role == Role.mentor:
+        return await utils_task.get_all_tasks_for_mentor(mentor=user, session=session)
+
     return await utils_task.get_all_tasks_for_student(student=user, session=session)
 
 @task_router.get("/{index}", response_model=TaskInfo)
@@ -112,19 +118,22 @@ async def delete_task(
 
     task_in_db = await utils_task.get_task_by_index(index, session)
 
-    if task_in_db.student != user.index:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not you task"
-        )
-    
-    if not await utils_task.delete_task_by_index(index, session):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Couldn't delete task"
-        )
-
-    return HTTPException(
+    if task_in_db.student == user.index or task_in_db.mentor == user.index or user.role == Role.admin:
+        if not await utils_task.delete_task_by_index(index, session):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Couldn't delete task"
+            )
+        
+        return HTTPException(
         status_code=status.HTTP_200_OK,
         detail="Task deleted"
+        )
+    
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not you task"
     )
+    
+
+    

@@ -12,7 +12,7 @@ load_dotenv()
 class Role(Enum):
     admin = "Администратор"
     hr = "HR"
-    manage = "Менаджер"
+    manager = "Менеджер"
     mentor = "Наставник"
     student = "Стажер"
 
