@@ -38,7 +38,7 @@ async def get_task_info(
 
     task_in_db = await utils_task.get_task_by_index(index, session)
 
-    if task_in_db.student != user.index:
+    if user.role == Role.student and task_in_db.student != user.index:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not you task"
@@ -99,11 +99,14 @@ async def change_task(
 
     task_in_db = await utils_task.get_task_by_index(index, session)
 
-    if task_in_db.student != user.index:
+    if user.role == Role.student and task_in_db.student != user.index:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not you task"
         )
+    
+    if user.role == Role.student:
+        new_task_info.score = task_in_db.score
     
     return await utils_task.change_task_info(index, new_task_info, session)
 

@@ -6,7 +6,7 @@ class UserRegistration(BaseModel):
     surname: str
     email: EmailStr
     password: str
-    role: Role = Role.student
+    role: Role
 
 class UserInfo(BaseModel):
     index: int

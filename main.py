@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth.auth_router import auth_router
 from api.user.user_router import user_router
 from api.tasks.task_router import task_router
+from api.connection.connection_router import connection_router
 
 app = FastAPI()
 
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(router=auth_router, prefix="/api")
 app.include_router(router=user_router, prefix="/api")
 app.include_router(router=task_router, prefix="/api")
+app.include_router(router=connection_router, prefix="/api")
 
 @app.get("/")
 def get_hello():

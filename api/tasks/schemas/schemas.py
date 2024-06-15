@@ -13,7 +13,6 @@ class AddTask(BaseModel):
     title: str
     description: str | None = None
     #files_in_description_path: List[FilePath] | None = None
-    create_at: datetime
     start_task: datetime | None = None
     finish_task: datetime | None = None
     score: int 

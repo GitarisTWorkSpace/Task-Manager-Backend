@@ -149,6 +149,7 @@ async def change_task_info(
         await session.execute(stmt)
 
     if task.get("score") != new_task_info.score:
+        if new_task_info.score > 100: new_task_info.score = 100
         stmt = update(TaskModel).where(TaskModel.c.id == index).values(score=new_task_info.score)
         await session.execute(stmt)
 

@@ -57,15 +57,7 @@ async def add_user_in_db(
 
     user_in_db = await get_current_user_by_email(session, user.email)
 
-    return UserInfo(
-        index=user_in_db.get("id"),
-        name=user_in_db.get("name"),
-        surname=user_in_db.get("surname"),
-        email=user_in_db.get("email"),
-        avatar_url=user_in_db.get("avatar_url"),
-        role=user_in_db.get("role"),
-        is_active=user_in_db.get("is_active")
-    )
+    return user_in_db_transform_in_user_info(user_in_db)
 
 async def change_user_password(
     new_password: bytes,
